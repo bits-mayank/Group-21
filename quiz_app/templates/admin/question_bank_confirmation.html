@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<form action="" method="post">
+    {% csrf_token %}
+    <p>
+        The Quiz: {{ quiz.title }}, will have the following questions after import.<br>
+        Are you sure you want to continue?
+        <input style="float: right; background-color: rgba(227, 64, 74, 1)" type="submit" name="apply" value="Cancel" />
+        <input style="float: right; margin-right: 20px;" type="submit" name="apply" value="Import" />
+        <input type="hidden" name="action" value="add_questions_to_quiz" />
+    </p>
+    <table id="result_list" style="margin-top:50px;">
+        <tbody>
+            {% for question in quiz.question_set.all %}
+            <tr>
+                <td></td>
+                <td>Q{{ forloop.counter | rjust:"2"}})</td>
+                <td>{{ question.title }}</td>
+            </tr>
+            {% endfor %}
+            {% with curCount=quiz.question_set.count %}
+            {% for question in question_bank %}
+            <tr style="background-color: rgba(45, 235, 95,0.5)">
+                <td> NEW </td>
+                <td>Q{{ forloop.counter| add:curCount | rjust:"2"}})</td>
+                <td>{{ question.title }}</td>
+                <input type="hidden" name="_selected_action" value="{{ question.pk }}" />
+            </tr>
+            {% endfor %}
+            {% endwith %}
+        </tbody>
+    </table>
+</form>
+{% endblock %}

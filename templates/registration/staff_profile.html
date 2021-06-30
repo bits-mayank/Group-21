@@ -1,0 +1,49 @@
+{% extends "quiz_app/layout.html" %}
+{% load tz %}
+{% block title %}
+Profile Page
+{% endblock %}
+
+{% block content %}
+{% timezone request.user.timeZone %}
+<div class="container-fluid" id="profile">
+	<!-- <ul class="sidenav">
+		<li><a href="#about">Tests</a></li>
+		<li><a href="#services">Profile</a></li>
+		<li><a href="#clients">Clients</a></li>
+		<li><a href="#contact">Contact</a></li>
+	</ul> -->
+	<main>
+		<div class="tab-content" style="color: black">
+			<div class="container mw-100">
+				<ol class="list-group">
+					<a target="_blank" class="btn btn-primary float-right" href="">Modify</a>
+					{% for quiz in quizzes %}
+					<li class="list-group-item">
+						{{ forloop.counter }}.
+						{{ quiz.title }}
+						<a target="_blank" class="btn btn-primary float-right" href="{% url 'quiz_upcoming' quiz.quiz_id %}">Modify</a>
+						<br>
+						<small style="color: #808080; margin-left: 30px; font-size: small;">From: {{ quiz.start_date}}</small>
+						<br>
+						<small style="color: #808080; margin-left: 30px; font-size: small;">To: {{ quiz.end_date}}</small>
+						<br>
+						<small style="color: #808080; margin-left: 30px; font-size: small;">Duration: {{ quiz.duration}} Minutes</small>
+
+					</li>
+					{% endfor %}
+				</ol>
+			</div>
+		</div>
+
+
+		<small>
+
+
+		</small>
+	</main>
+
+
+</div>
+{% endtimezone %}
+{% endblock %}

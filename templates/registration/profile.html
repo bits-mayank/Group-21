@@ -1,0 +1,95 @@
+{% extends "quiz_app/layout.html" %}
+{% load tz %}
+{% block title %}
+Profile Page
+{% endblock %}
+
+{% block content %}
+{% timezone request.user.timeZone %}
+<div class="container-fluid" id="profile">
+	<!-- <ul class="sidenav">
+		<li><a href="#about">Tests</a></li>
+		<li><a href="#services">Profile</a></li>
+		<li><a href="#clients">Clients</a></li>
+		<li><a href="#contact">Contact</a></li>
+	</ul> -->
+
+	<main>
+		<ul class="nav nav-tabs">			
+			<li class="nav-item">
+				<a class="nav-link active" data-toggle="tab" href="#current">Live Tests <span class="badge badge-danger">{{ current|length }}</span></a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="tab" href="#upcoming">Upcoming Tests  <span class="badge badge-danger">{{ upcoming|length }}</span></a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="tab" href="#past">Past Tests  <span class="badge badge-danger">{{ past|length }}</span></a>
+			</li>
+		</ul>
+
+		<div class="tab-content" style="color: black">
+			<div class="tab-pane container mw-100 active" id="current">
+				<ol class="list-group">
+					{% if current|length_is:"0" %}
+						<p>No Test Assigned	</p>						
+					{% else %}
+						{% for quizTaker in current %}
+						<li class="list-group-item">
+							{{ forloop.counter }}.
+							{{ quizTaker.quiz.title }}						
+							<a class="btn btn-primary float-right" href="{% url 'home' %}">Start Now</a>
+						</li>
+						{% endfor %}
+					{% endif %}
+				</ol>
+			</div>
+			<div class="tab-pane container fade mw-100" id="upcoming">
+				<ol class="list-group">
+					{% for quizTaker in upcoming %}
+					<li class="list-group-item">
+						{{ forloop.counter }}.
+						{{ quizTaker.quiz.title }}
+						<a target="_blank" class="btn btn-primary float-right" href="{% url 'quiz_upcoming' quizTaker.quiz.quiz_id %}">View Test</a>
+						<br>
+						<small style="color: #808080; margin-left: 30px; font-size: small;">From: {{ quizTaker.quiz.start_date}}</small>
+						<br>
+						<small style="color: #808080; margin-left: 30px; font-size: small;">To: {{ quizTaker.quiz.end_date}}</small>
+						<br>
+						<small style="color: #808080; margin-left: 30px; font-size: small;">Duration: {{ quizTaker.quiz.duration}} Minutes</small>
+
+					</li>
+					{% endfor %}
+				</ol>
+			</div>
+			<div class="tab-pane container fade mw-100" id="past">
+				<ol class="list-group">
+					{% for quizTaker in past %}
+					<li class="list-group-item">
+						{{ forloop.counter }}.
+						{{ quizTaker.quiz.title }}
+						- 	<small>{{ quizTaker.started|date }}</small>
+						{% if quizTaker.has_passed %}
+						<small style="color: #006100">(Pass)</small>
+						{% elif quizTaker.was_missed %}
+						<small style="color: #808080">(Missed)</small>
+						{% else %}
+						<small style="color: #9C0006">(Fail)</small>
+						{% endif %}
+						<a target="_blank" class="btn btn-primary float-right {% if quizTaker.was_missed %}disabled{% endif %}" href="{% url 'quiz_result' quizTaker.quiz.quiz_id %}"> View Result</a>
+					</li>
+					{% endfor %}
+				</ol>
+			</div>
+		</div>
+
+
+		<small>
+
+
+		</small>
+	</main>
+
+
+</div>
+{% endtimezone %}
+{% endblock %}

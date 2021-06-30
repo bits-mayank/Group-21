@@ -1,0 +1,157 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.css" />
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.7.0"></script>
+<style>
+	caption
+	{
+		caption-side: inherit;
+	}
+</style>
+{% endblock %}
+
+
+
+
+
+{% if not is_popup %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+	<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+	&rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+	&rsaquo; {% if has_view_permission %}<a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>{% else %}{{ opts.verbose_name_plural|capfirst }}{% endif %}
+	&rsaquo; {{ quiz }}
+</div>
+{% endblock %}
+{% endif %}
+
+
+
+{% block content_title %}
+{% if title %}
+<h1>Report For Quiz: {{ quiz.title }}</h1>
+{% endif %}
+<br>
+Max Marks: {{ totalMarks }}
+<br>
+<canvas id="barChart" width="400" height="100"></canvas>
+<br>
+<span id="total">Total Students:</span>
+<br>
+<span id="passed">Students Passed: </span>
+<br>
+<span id="failed">Students Failed:</span>
+<canvas id="pieChart" width="400" height="100"></canvas>
+<script>
+	marks = JSON.parse(`{{ marks|safe }}`);
+	maxMarks = {{totalMarks}}
+	var totalStudents = 0;
+	var passedStudents = 0;
+	var barLabels = [...Array(maxMarks+1).keys()];
+	var barData = new Array(maxMarks+1).fill(0);
+	var backgroundColor = new Array(maxMarks).fill('rgba(255, 99, 132, 0.2)');
+	var borderColor = new Array(maxMarks).fill('rgba(255,99,132,1)');
+	for (const [key, value] of Object.entries(marks)) {
+		barData[key] = value;
+		totalStudents += value;
+		if(key/maxMarks >= 0.33) {
+			passedStudents += value;
+			backgroundColor[key] = 'rgba(75, 192, 192, 0.2)';
+			borderColor[key] = 'rgba(75, 192, 192, 1)';
+		}
+	}
+	$("#total").html(`Total Students: ${totalStudents}`);
+	$("#passed").html(`Students Passed: ${passedStudents}`);
+	$("#failed").html(`Students Failed: ${totalStudents - passedStudents}`);
+	var barChart = $("#barChart").get(0).getContext("2d");
+	var pieChart = $("#pieChart").get(0).getContext("2d");
+
+	var barConfig = {
+		type: 'bar',
+		data: {
+			labels: barLabels,
+			datasets: [{
+				label: 'No Of Students',
+				data: barData,
+				backgroundColor: backgroundColor,
+				borderColor: borderColor,
+				borderWidth: 1,
+			}]
+		},
+		options: {
+			scales: {
+				xAxes: [{
+					scaleLabel: {
+						display: true,
+						labelString: 'Marks'
+					}
+				}],
+				yAxes: [{
+					scaleLabel: {
+						display: true,
+						labelString: 'No Of Students'
+					}
+				}],
+			}
+			}
+	};
+	var barChart = new Chart(barChart, barConfig);
+
+
+
+
+	var pieOptions = {
+		tooltips: {
+			enabled: false
+		},
+		plugins: {
+			datalabels: {
+				formatter: (value, ctx) => {
+					let sum = 0;
+					let dataArr = ctx.chart.data.datasets[0].data;
+					dataArr.map(data => {
+						sum += data;
+					});
+					let percentage = (value*100 / sum).toFixed(2)+"%";
+					return percentage;
+				
+				},
+			color: '#fff',
+			}
+		}
+    };
+
+	var pieConfig = {
+		type: 'pie',
+		data: {
+			labels: [
+				"Passed",
+				"Failed",
+			],
+			datasets: [{
+				data: [passedStudents, totalStudents - passedStudents],
+				backgroundColor: [
+					"#63FF84",
+					"#FF6384",
+				]
+			}]
+		},
+		options: pieOptions
+	}
+	var pieChart = new Chart(pieChart, pieConfig);
+</script>
+{% endblock %}
+
+
+
+{% block object-tools-items %}{% endblock %}
+
+
+
+{% block submit_buttons_bottom %}{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "admin/import_export/change_list.html" %}
+{% load i18n admin_urls admin_list %}
+
+
+{% block content_title %}
+{% if title %}
+<h1>Select Questions To Import Or Delete</h1>
+{% endif %}
+{% endblock %}
+
+
+{% block object-tools-items %}
+{% if has_import_permission %}
+<li><a href='{% url opts|admin_urlname:"import" %}' class="import_link">{% trans "Import" %}</a></li>
+{% endif %}
+{% if has_add_permission %}
+<li>
+	{% url cl.opts|admin_urlname:'add' as add_url %}
+	<a href="{% add_preserved_filters add_url is_popup to_field %}" class="addlink">
+		{% blocktranslate with cl.opts.verbose_name as name %}Manually Add A Question{% endblocktranslate %}
+	</a>
+</li>
+{% endif %}
+{% endblock %}
+
+
+{% block filters %}
+{% if cl.has_filters %}
+<div id="changelist-filter">
+	<h2>{% translate 'Filter' %}</h2>
+	{% if cl.has_active_filters %}
+	<h3 id="changelist-filter-clear">
+		{% if "quizid" in request.GET %}
+		<a href="{{ cl.clear_all_filters_qs }}quizid={{request.GET.quizid}}">
+			&#10006; {% translate "Clear all filters" %}
+		</a>
+		{% else %}
+		<a href="{{ cl.clear_all_filters_qs }}">
+			&#10006; {% translate "Clear all filters" %}
+		</a>
+		{% endif %}
+	</h3>
+	{% endif %}
+	{% for spec in cl.filter_specs %}{% admin_list_filter cl spec %}{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

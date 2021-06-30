@@ -1,0 +1,492 @@
+{% extends "quiz_app/base_test.html" %}
+
+{% block title %}
+{{ quiz.title | title }}
+{% endblock %}
+
+{% block content %}
+
+<!-- All the css of this file is in - quiz.css  -->
+
+<div id="testPage-wrapper" class="container-fluid">
+	<div class="row" id="testPage">
+		<div class="sidebar col-md-3">
+
+			<!-- for the question numbers on the side bar (loaded by the javascript depending on the no of questions) -->
+			<ul class="circle-wrap" id="circle-wrap">
+				
+			</ul>
+			
+		</div>
+		<div class="col-md-9 main">
+			<div class="main-content">
+				<div class="question">
+					<p id="q-title"></p>
+					<p class="p-2">
+						<span id="bookmark"><i class="fa fa-bookmark-o" aria-hidden="true"></i></span>
+						<span id="q-marks">Marks: 1</span>
+					</p>
+				</div>
+				<small class="small">Please select an option</small>
+				<form id="opForm">
+					{% csrf_token %}
+					<div class="options" id="q-options">
+						
+					</div>
+					{% if quiz.allow_backtracking %}
+					<button class="btn btn-primary mt-3" id="btn-prev" type="submit">Prev</button>
+					{% endif %}
+					<button class="btn btn-primary mt-3" id="btn-submit" type="submit">Submit</button>
+					<button class="btn btn-primary mt-3" id="btn-next" type="submit">Next</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+
+<script>
+// javascript
+	var questions;
+	var responses;
+	var quiz_id;
+	var remaining_time;
+	var shuffle;
+
+	var activeQueNo = 0;
+	var totalQues;
+	var qTitle = document.getElementById("q-title");
+	var qMarks = document.getElementById("q-marks");
+	var options = document.getElementById("q-options");
+	{% if quiz.allow_backtracking %}
+	var prevQueBtn = document.getElementById("btn-prev");
+	{% endif %}
+	var submitQueBtn = document.getElementById("btn-submit");
+	var nextQueBtn = document.getElementById("btn-next");
+	var opForm = document.getElementById("opForm");
+	var circleWrap = document.getElementById("circle-wrap");
+	var circles = [];
+	var bookmarkIcon = document.querySelector("#bookmark .fa");
+	var bookmark = document.getElementById("bookmark");
+	
+	var attempted = $("#attemptedNo");
+
+	
+	// Load the question
+	// take question no as input and load that question
+	function loadQuestion(questions, no){
+		{% if quiz.allow_backtracking %}
+			if(no == 0) {
+				prevQueBtn.disabled = true;
+			}
+			else {
+				prevQueBtn.disabled = false;
+			}
+		{% else %}
+			// backtracking is not allowed -> fast forward
+			if(no >= totalQues-1) {
+				showResults();
+				return false;
+			}
+			let response = responses[no]["answer"]
+			if(response) {
+				activeQueNo++;
+				loadQuestion(questions, activeQueNo);
+				return false;
+			}
+		{% endif %}
+
+		let question = questions[no];
+		if(no >= totalQues-1)
+			nextQueBtn.innerText = "Finish Test";
+		else
+			nextQueBtn.innerText = "Next";
+
+		$("#q-title").html($(`<pre />`, {text: `${no+1}. ${question.title}`}));
+		qMarks.innerText = `${(question.marks) > 1 ? 'Marks: ': 'Mark: '} ${question.marks}`;
+		bookmark.innerHTML = `<i class="fa ${(responses[no]["bookmark"])?'fa-bookmark': 'fa-bookmark-o'}" aria-hidden="true"></i>`;
+		loadOptions(question);
+		setUpBookmarkButton();
+		$("input[name=que]").val([responses[activeQueNo]["answer"]]);
+	}
+
+	// load the options in the html
+	function loadOptions(question){
+		options.innerHTML = "";
+		question["options_array"].forEach(function(option,i) {
+			createOption(option, String.fromCharCode(65+i));
+		});
+	}
+
+	// Create the options for the questions in HTML
+	function createOption(choice, choiceNo){
+		let div = $(`<div />`, {
+			"class": "option"
+		});
+		let input = $(`<input />`, {
+			type: "radio",
+			name: "que",
+			value: `${choice}`,
+			id: `opt${choiceNo}`,
+			required: true
+		});
+		let label = $(`<label />`, {
+			for: `opt${choiceNo}`,
+		});
+		let span1 = $(`<span />`, {
+			text: `${choiceNo}.`
+		});
+		let span2 = $(`<span />`);
+		let pre = $(`<pre />`, {
+			text: `${choice}`
+		});
+		pre.appendTo(span2);
+		span1.appendTo(label);
+		span2.appendTo(label);
+		input.appendTo(div);
+		label.appendTo(div);
+		div.appendTo("#q-options");
+	}
+
+	// shuffle the array
+	// used to shuffle the  questions or options of quesions
+	function shuffleArray(array) {
+		for (let i = array.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[array[i], array[j]] = [array[j], array[i]];
+		}
+	}
+
+	// take a question as input and shuffles all its options
+	function shuffleOptions(questions) {
+		questions.forEach(function(question) {
+			options_array = []
+			if(question.choice_1)
+				options_array.push(question.choice_1)
+			if(question.choice_2)
+				options_array.push(question.choice_2)
+			if(question.choice_3)
+				options_array.push(question.choice_3)
+			if(question.choice_4)
+				options_array.push(question.choice_4)
+			if(question.choice_5)
+				options_array.push(question.choice_5)
+			if(question.isShuffle)
+				shuffleArray(options_array);
+			question["options_array"] = options_array;
+		});
+	}
+
+	// add click listener to the prev button and call the loadQuestion function to load prev question
+	// by decrementing the value of activeQueNo by 1
+	function setupPrevBtn() {
+		prevQueBtn.addEventListener("click", function(e){
+			e.preventDefault();
+			loadQuestion(questions, --activeQueNo);
+			prevQueBtn.blur();
+		});
+	}
+
+	function saveResponse(qNo, selectAns) {
+		$.ajax({
+			type: "POST",
+			url: 'response/save/',
+			data: {
+				quizTaker: {{quizTaker.pk}},
+				question: questions[qNo].id,
+				answer: selectAns,
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success:function(success) {
+				Swal.fire({
+					toast: true,
+					position: 'top-end',
+					icon: 'success',
+					html: 'Response Saved',
+					animation: true,
+					timer: 1000,
+					timerProgressBar: true,
+					showConfirmButton: false,
+				});
+				responses[qNo]["answer"] = selectAns;
+				setupSidebarBtns();
+				submitQueBtn.blur();
+				set_attempted();
+			},
+			error:function(error) {
+				if(error.status == 403 && error.responseJSON.error == "logged out") {
+					Swal.fire({
+						toast: true,
+						position: 'top-end',
+						icon: 'error',
+						html: `You Have been logged out.<br>Please Login again.`,
+						animation: true,
+						timer: 3000,
+						timerProgressBar: true,
+						showConfirmButton: false,
+					});
+				} else {
+					Swal.fire({
+						toast: true,
+						position: 'top-end',
+						icon: 'error',
+						html: `Response Couldn't be Saved<br>Please Try Again`,
+						animation: true,
+						timer: 2000,
+						timerProgressBar: true,
+						showConfirmButton: false,
+					});
+				}
+				//$("input[name=que]").val([]);
+			}
+		});
+	}
+
+	// add click listener to the submit button
+	// get the selected answer and call the saveResponse Function with the selected answer and the corresponding queNo.
+	// It then load the next Question
+	function setupSubmitBtn(){
+		submitQueBtn.addEventListener("click", function(e){
+			e.preventDefault();
+			let selectAns = opForm.que.value;
+
+			// option not selected - show alert on click
+			if(!selectAns){
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					html: 'Please select an answer',
+					position: 'top',
+					timerProgressBar: false,
+					showConfirmButton: true
+				});
+				return false;
+			}
+			saveResponse(activeQueNo, selectAns);
+			if(activeQueNo < totalQues - 1)
+				loadQuestion(questions, ++activeQueNo);
+		});
+	}
+
+	// add click listener to the next button and call the loadQuestion function to load next question
+	// by incrementing the value of activeQueNo by 1
+	function setupNextBtn() {
+		nextQueBtn.addEventListener("click", function(e){
+			e.preventDefault();
+			if(activeQueNo < totalQues - 1)
+				loadQuestion(questions, ++activeQueNo);
+			else{
+				showResults();
+			}
+			nextQueBtn.blur();
+		});
+	}
+
+
+	function showResults(){
+		Swal.fire({
+			icon: 'warning',
+			title: 'Are you sure you want to submit the test?',
+			text: "You won't be able to attempt it again!",
+			showCancelButton: true,
+			confirmButtonColor: '#3085d6',
+			cancelButtonColor: '#d33',
+			focusCancel: true,
+		}).then((result) => {
+			if (result.isConfirmed) {
+				$.ajax({
+					type: "POST",
+					url: 'completed/',
+					data: {
+						quizTaker: {{quizTaker.pk}},
+						csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+					},
+					success:function(success) {
+						window.location.pathname = `{% url 'quiz_result' quiz.quiz_id %}`;
+					},
+					error:function(error) {
+						Swal.close();
+						if(error.status == 403 && error.responseJSON.error == "logged out") {
+							Swal.fire({
+								toast: true,
+								position: 'top-end',
+								icon: 'error',
+								html: `You Have been logged out.<br>Please Login again.`,
+								animation: true,
+								timer: 3000,
+								timerProgressBar: true,
+								showConfirmButton: false,
+							});
+						} else {
+							Swal.fire({
+								toast: true,
+								position: 'top-end',
+								icon: 'error',
+								html: `Test Couldn't be Submitted<br>Please Try Again`,
+								animation: true,
+								timer: 2000,
+								timerProgressBar: true,
+								showConfirmButton: false,
+							});
+						}
+					}
+				});
+				Swal.fire({
+					icon: 'success',
+					title: 'Submitting',
+					html: 'Please Wait!!!',
+					position: 'center',
+					showConfirmButton: false,
+					allowOutsideClick: false,
+					allowEscapeKey: false,
+				});
+			}
+		});
+	}
+
+
+	function set_attempted() {
+		let attNo = 0;
+		responses.forEach(function(response) {
+			if(response["answer"]) {
+				attNo++;
+			}
+		})
+		attempted.text(`${attNo}/${totalQues}`);
+	}
+
+
+
+	function setup_timer(){
+		remaining_time = {{quizTaker.time_remaining}}|0;
+		let show_timer_warning = true;
+		function update_timer() {
+			remaining_time--;
+			$("#timer").text(`Time Left: ${(remaining_time/60|0).toString().padStart(2, '0')}:${(remaining_time%60).toString().padStart(2, '0')}`);
+
+			if(remaining_time <= 300 && show_timer_warning) {
+				show_timer_warning = false;
+
+				Swal.fire({
+					toast: true,
+					position: 'top-end',
+					icon: 'warning',
+					text: ` ${Math.ceil(remaining_time/60)} Minutes Left`,
+					animation: true,
+					timer: 3000,
+					showConfirmButton: false,
+				});
+				$("#timer").css({"color":"red"}).fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+			} 
+
+			if(remaining_time <= 0) {
+				clearInterval(timer_interval);
+				showResults();
+				Swal.fire({
+					icon: 'warning',
+					title: 'Time Is Up',
+					html: 'Test Is Auto Submitting',
+					position: 'center',
+					showConfirmButton: false,
+					allowOutsideClick: false,
+					allowEscapeKey: false,
+				});
+				return;
+			}
+		}
+		update_timer();
+		var timer_interval = setInterval(update_timer, 1000);
+	}
+
+	// load all the question numbers on the sidebar
+	// styles the qNo button for attempted or not or bookmarked
+	// add event listeners to the qNo buttons
+	function setupSidebarBtns(){
+		circleWrap.innerHTML = "";
+
+		// set the styling based on the response of user
+		// if the user attempted the question give it green color
+		// if the user bookmarked the question give it a border
+		// if the user didn't attempt the question give it default class
+		for(let i = 0; i < totalQues; i++){
+			let res = responses[i];
+			circleWrap.innerHTML += `<li class="circle ${(res["answer"])? 'attempt' : 'unattempt'} ${(res["bookmark"])? 'mark': ''} ">${i+1}</li>`;
+		}
+		circles = document.querySelectorAll(".circle");
+
+		// when backtracking questions is allowed
+		// adding listeners to sidepanel question number buttons
+		{% if quiz.allow_backtracking %}
+			for(let i = 0; i < circles.length; i++){
+				circles[i].style.cursor = "pointer";
+				circles[i].addEventListener("click", function(){
+					activeQueNo = parseInt(this.innerText) - 1;
+					loadQuestion(questions, activeQueNo);
+				});
+			}
+		{% endif %}
+	}
+
+	// initally set all the bookmarks to false 
+	function setUpBookmarks(){
+		for(let i = 0; i < totalQues; i++){
+			responses[i]["bookmark"] = false;
+		}
+		setUpBookmarkButton();
+	}
+
+	// add the listeners to the bookmark button
+	// this button get the question no from the question and
+	// add that question to the bookmarks
+	function setUpBookmarkButton(){
+		bookmarkIcon = document.querySelector("#bookmark .fa");
+		bookmarkIcon.addEventListener("click", function(e){
+			let content = e.target.parentNode.parentNode.parentNode.innerText;
+			let i = content.substring(0, content.indexOf("."))-1;
+			responses[i]["bookmark"] = !responses[i]["bookmark"];
+			let icon = event.target;
+			if(responses[i]["bookmark"]){
+				icon.classList.add("fa-bookmark");
+				icon.classList.remove("fa-bookmark-o");
+			}else{
+				icon.classList.remove("fa-bookmark");
+				icon.classList.add("fa-bookmark-o");
+			}
+			setupSidebarBtns();
+		});
+	}
+
+
+	// Initialize the basic setup like
+	// load the first question with options shuffled
+	// load the sidebar and the question numbers and add listener to them
+	// load the bookmark and add listener to it
+	// start the timer for the test
+	// setup the next, prev, submit buttons
+	function init()	{
+		questions = {{ questions|safe }};
+		responses = {{ responses|safe }};
+		shuffleOptions(questions);
+		totalQues = questions.length;
+		activeQueNo = 0;
+		if(totalQues < 0) return;
+		setupSidebarBtns();
+		setUpBookmarks();
+		loadQuestion(questions, activeQueNo);
+		quiz_id = `{{quiz.quiz_id}}`;
+		setup_timer();
+		{% if quiz.allow_backtracking %}
+		setupPrevBtn();
+		{% endif %}
+		setupSubmitBtn();
+		setupNextBtn();
+		set_attempted();
+	}
+
+	init();
+
+</script>
+
+{% endblock %}

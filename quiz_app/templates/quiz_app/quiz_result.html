@@ -1,0 +1,162 @@
+{% extends "quiz_app/layout.html" %}
+
+{% block title %}
+{{ quiz.title | title }} - Results
+{% endblock %}
+
+{% block content %}
+
+<!-- CSS location - style.css -->
+
+<div id="quiz_result" class="container-fluid">
+	<div class="row mt-2">
+		<div class="container text-center shadow">
+			<h2>Quiz Result</h2>
+			<h1>{{quiz.title}}</h1>
+		</div>
+	</div>
+	<div class="content text-center container mt-4">
+		<div class="row justify-content-center">
+			<div class="col-6 col-md-3 d-flex align-items-center justify-content-center">Your Score: </div>
+			<div class="col-6 col-md-3">
+				<span class="score" id="score">84</span>/<span id="total">100</span> <span class="res" id="status">Passed</span>
+			</div>
+		</div>
+		<div class="row justify-content-center">
+			<div class="col-6 col-md-3">Attempted: </div>
+			<div class="col-6 col-md-3">
+				<div class="progress">
+					<div class="progress-bar" style="width:0%" id="attempted">100</div>
+				</div>
+			</div>
+		</div>
+		<div class="row justify-content-center">
+			<div class="col-6 col-md-3">Correct: </div>
+			<div class="col-6 col-md-3">
+				<div class="progress">
+					<div class="progress-bar bg-success" style="width:0%" id="correct">84</div>
+				</div>
+			</div>
+		</div>
+		<div class="row justify-content-center">
+			<div class="col-6 col-md-3">Incorrect: </div>
+			<div class="col-6 col-md-3">
+				<div class="progress">
+					<div class="progress-bar bg-danger" style="width:0%" id="incorrect">16</div>
+				</div>
+			</div>
+		</div>
+		<div class="row justify-content-center">
+			<div class="col-6 col-md-3">Accuracy: </div>
+			<div class="col-6 col-md-3">
+				<div class="progress">
+					<div class="progress-bar bg-dark" style="width:0%" id="accuracy">84 Percent</div>
+				</div>
+			</div>
+		</div>
+		<div class="row justify-content-center">
+			<div class="col-6 col-md-3">Reports: </div>
+			<div class="col-6 col-md-3 text-left">
+				<a id="" class="btn btn-info btn-sm" style="white-space: normal" href="{% url 'export_result' quiz.quiz_id %}" role="button">
+					<i class="fa fa-file-excel-o mr-2"></i>
+					Download Detailed Report
+				</a>
+			</div>
+		</div>
+		<div class="row justify-content-center mt-4">
+			<button class="btn btn-primary mx-3" data-toggle="collapse" data-target="#report-table">View Questions</button>
+			<a class="btn btn-info mt-1 mt-md-0" href="{% url 'home' %}">Click Here to Continue</a>
+		</div>
+	</div>
+
+	<!-- Table for the detailed view of questions -->
+	<div class="description container my-4 px-0 table-responsive-md collapse" id="report-table">
+		<table class="table">
+			<thead>
+				<tr>
+					<th>S. No</th>
+					<th>Question</th>
+					<th>Your Answer</th>
+					<th>Correct Answer</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for response in responses %}
+				<tr class="{% if response.isCorrect %}result-success{%elif response.answer %}result-danger{% else %}result-primary{%endif%}">
+					<td>{{forloop.counter}}</td>
+					<td>
+						<pre>{{response.question.title}}</pre>
+					</td>
+					<td>{{response.answer}}</td>
+					<td>{{response.question.correct}}</td>
+				</tr>
+				{% endfor %}
+
+			</tbody>		
+
+		</table>
+	</div>
+</div>
+
+
+<script>
+    let responses = [], response = {}, quizTaker, quiz, attempted = 0, totalQuestions, totalMarks = 0, marks=0, correct = 0, incorrect = 0, accuracy, len, percentage;
+    let score = document.getElementById("score");
+    let total = document.getElementById("total");
+    let attemptBar = document.getElementById("attempted");
+    let correctBar = document.getElementById("correct");
+    let incorrectBar = document.getElementById("incorrect");
+    let accuracyBar = document.getElementById("accuracy");
+    let status = document.getElementById("status");
+
+
+    totalQuestions = {{ responses | length }}
+    {% for r in responses %}
+        len = {{ r.answer | length }};
+        marks += {{ r.marks }};
+        totalMarks += {{ r.question.marks }};
+
+        {% if r.answer %}
+            {% if r.isCorrect %}
+                correct += 1;
+            {% else %}
+                incorrect += 1;
+            {% endif %}
+            attempted += 1;
+        {% endif %}
+        
+    {% endfor %}
+
+    function init(){
+        score.innerText = marks;
+        total.innerText = totalMarks;
+        attemptBar.innerHTML = attempted + "/" + totalQuestions;
+        attemptBar.style.width = (attempted/totalQuestions)*100 + '%';
+        correctBar.innerHTML = correct;
+        correctBar.style.width = (correct/totalQuestions)*100 + '%';
+        incorrectBar.innerHTML = incorrect;
+        incorrectBar.style.width = (incorrect/totalQuestions)*100 + '%';
+        accuracy = (correct/attempted)*100;
+        accuracyBar.innerHTML = accuracy.toFixed(2) + '%';
+        accuracyBar.style.width = accuracy + '%';
+        percentage = (marks/totalMarks)*100;
+        if(percentage >= 33.3){
+            status.innerText = "Passed";
+            status.classList.add("text-success");
+        }else{
+            status.innerText = "Failed";
+            status.classList.add("text-danger");
+        }
+    }
+    init();
+
+	
+	// Add the text change to the show questions button
+	var toggleTableBtn = document.querySelector("button[data-target='#report-table']");
+	toggleTableBtn.addEventListener("click", function(){
+		if(this.innerText == "View Questions") this.innerText = "Hide Questions";
+		else this.innerText = "View Questions";
+	})
+</script>
+
+{% endblock %}

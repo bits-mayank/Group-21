@@ -1,0 +1,1 @@
+Your test: {{ quiz.title }} has been submitted successfully.

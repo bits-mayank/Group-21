@@ -1,0 +1,47 @@
+{% extends "quiz_app/layout.html" %}
+
+{% block title %}
+{{ quiz.title | title }}
+{% endblock %}
+
+{% block content %}
+
+<!-- CSS location - site.css -->
+
+<div class="quiz_started">
+	<div class="row">
+		<div class="col-12 mb-4"><h1 class="text-center">{{ quiz.title }}</h1></div>
+	</div>
+	<div class="row inner">
+		<div class="col-12 col-md-8 instructions">
+			<div class="mx-auto my-0" style="padding: 0 20px;">
+				{% for desc in quiz.description.splitlines %}
+				{{ desc }} <br>
+				{% endfor %}
+			</div>
+		</div>
+		<div class="col-12 col-md-4 text-center">
+			<form>
+				{% csrf_token %}
+				<a class="start_test btn" href="{% url 'quiz_instructions' quiz.quiz_id%}" id="test-start-btn">Continue</a>
+			</form>
+		</div>
+	</div>
+</div>
+
+{% for field, errors in form.errors.items %}
+{% for error in errors %}
+<script>
+	Swal.fire({
+		icon: 'warning',
+		html: '{{ error }}',
+		position: 'top',
+		timerProgressBar: true,
+		showConfirmButton: false,
+		timer: 3000
+	});
+</script>
+{%endfor %}
+{%endfor %}
+
+{% endblock %}

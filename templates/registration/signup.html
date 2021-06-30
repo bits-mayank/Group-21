@@ -1,0 +1,67 @@
+{% extends "registration/base_form.html" %}
+
+{% block title %}
+SignUp
+{% endblock %}
+
+
+{% block formBlock %}
+
+<!-- 
+	Signup Page
+	CSS - static/form.css
+ -->
+
+<div class="formBlock my-md-4 shadow">
+	<h2 class="text-center">Sign Up</h2>
+	<form method="post">
+		{% csrf_token %}
+		{% for field in form.visible_fields %}
+		<div class="form-group">
+			<label for={{ field.auto_id }}>
+				{% if field.label == "Username" %} Email {% else %}{{ field.label }}{% endif %}
+			</label>
+			{% if 'timeZone' in field.html_name %}
+			{{field}}
+			{% else %}
+			<input class="form-control" id="{{ field.id_for_label }}" maxlength="30" name="{{ field.html_name }}" type={% if "password" in field.html_name %} password {% else %} {{ field.type }} {% endif %} autocapitalize="none" required="" />
+			{% endif %}
+		</div>
+		{% endfor %}
+		<div class="form-group">
+			<button type="submit" class="btn btn-block mt-4" id="signup">Sign Up</button>
+		</div>
+		<div class="form-group">
+			<label class="control-label">Already have an account? <a href="{% url 'login' %}" class="form-link">Log In</a></label>
+		</div>
+
+		<!-- Show the errors return by the server like email already exist -->
+		{% for field, errors in form.errors.items %}
+		{% for error in errors %}
+		<script>
+			Swal.fire({
+				icon: 'warning',
+				html: '{{ error }}',
+				position: 'top',
+				timerProgressBar: true,
+				showConfirmButton: false,
+				timer: 3000
+			});
+		</script>
+		{%endfor %}
+		{%endfor %}
+	</form>
+
+	<script>
+	$(function() {
+		$.getJSON("http://www.geoplugin.net/json.gp?jsoncallback=?",
+			function (data) {
+				if(data["geoplugin_status"] == 200) {
+					$("#id_timeZone").val(data["geoplugin_timezone"]);
+				}
+			}
+		);
+	})
+	</script>
+</div>
+{% endblock %}

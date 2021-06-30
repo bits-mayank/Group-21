@@ -1,0 +1,57 @@
+{% extends "quiz_app/layout.html" %}
+
+{% block title %}
+{{ quiz.title | title }}
+{% endblock %}
+
+{% block content %}
+
+<!-- CSS location - site.css -->
+
+<div class="quiz-upcoming">
+	
+	<div class="inner" style="text-align: center;">
+		<div>
+			<h1>{{ quiz.title }}</h1>
+		</div>
+
+		<div class="mt-5">
+			<h3>
+				Starts in: <br><span id="timer" class="text-capitalize"></span>
+
+				<script>
+					var time = "{{quiz.time_till_starts}}";
+					var timer = $("#timer");
+					var interval;
+
+					function time_format(seconds) {
+						var days = Math.floor(seconds / (24 * 60 * 60));
+						seconds -= days * (24 * 60 * 60);
+						days = (days > 0) ? ((days > 1) ? (days + " days ") : (days + " day ")) : "";
+						var hours = Math.floor(seconds / (60 * 60));
+						seconds -= hours * (60 * 60);
+						hours = (hours > 0) ? ((hours > 1) ? (hours + " hours ") : (hours + " hour ")) : "";
+						var minutes = Math.floor(seconds / (60));
+						seconds -= minutes * (60);
+						minutes = (minutes > 1) ? (minutes + " minutes and ") : (minutes + " minute and ");
+						seconds = (seconds > 1) ? (seconds + " seconds ") : (seconds + " second ");
+						return days + hours + minutes + seconds;
+					}
+
+					function update_timer(){
+						if (time <= 0) {
+							clearInterval(interval);
+							window.location.replace("{% url 'quiz_started' quiz.quiz_id %}");
+						}
+						timer.text(time_format(time-- | 0));
+					}
+
+					interval = setInterval(update_timer, 1000);
+					update_timer();
+				</script>
+			</h3>
+		</div>
+	</div>
+</div>
+
+{% endblock %}

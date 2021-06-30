@@ -1,0 +1,89 @@
+/*
+CSS For the following files
+quiz_instructions.html
+quiz_started.html
+quiz_upcoming.html
+*/
+
+
+.quiz_started,
+#quiz_instruction{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding:15px 15px;
+}
+
+#quiz_instruction .instructions{
+    padding:10px 15px 15px 30px;
+}
+
+#quiz_instruction .instruction-list {
+    padding: 0 20px;
+}
+
+#quiz_instruction .inner form{
+    text-align: center;
+}
+
+/* video on the instructions page*/
+.swal2-content #video-outer canvas{
+    position: absolute;
+    top:0;
+    left:0;
+    right:0;
+    margin:0 auto;
+}
+
+@media(max-width:400px){
+    .swal2-content #video-outer #video {
+        width:100%;
+    }
+
+    .swal2-content #video-outer canvas {
+        position: absolute;
+        top:0;
+        left:0;
+        right:0;
+        margin:0 auto;
+        width:100%;
+    }
+}
+
+.quiz_started .inner{
+    align-items: center;
+}
+
+.quiz_started .inner form{
+    padding:15px 0;
+}
+
+.quiz_started .start_test,
+#quiz_instruction .start_test {
+    background: var(--nav);
+    color:#fff;
+    transition: all 150ms ease-in-out;
+}
+
+.quiz-upcoming{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.quiz-upcoming .inner{
+    padding: 50px;
+    width: 800px;
+    max-width: 100%;
+}
+
+/*.message {
+    font-weight: 600;
+    color: dodgerblue;
+}
+
+.body-content {
+    padding: 5px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}

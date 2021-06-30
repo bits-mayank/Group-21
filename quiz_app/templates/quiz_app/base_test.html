@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>{% block title %}{% endblock %}</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@3/dark.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+	{% load static %}
+	<!-- <link rel="shortcut icon" href="{%  static 'quiz_app/images/favicon.ico' %}"> -->
+	<link rel="stylesheet" type="text/css" href="{% static 'quiz_app/css/quiz.css' %}" />
+
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.js"></script>
+	{% if quiz.isProctored %}
+	<script defer src="{% static 'quiz_app/face_detection/face-api.min.js' %}"></script>
+	<script defer src="{% static 'quiz_app/face_detection/face_script.js' %}"></script>
+	{% endif %}
+</head>
+
+<body>
+
+	<!-- Navbar for the quiz.html ( test page ) -->
+	<nav class="navbar navbar-expand-md navbar-dark nav-quiz" style="color:white">
+
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+
+		<div class="collapse navbar-collapse order-1" id="collapsibleNavbar">
+			<ul class="navbar-nav">
+				<li class="navbar-text mx-2 navbar-brand">	Quiz Masters</li>
+
+				{% if user.is_authenticated %}
+					<li class="navbar-text mx-2">
+						Hi {{ user.full_name }}!
+					</li>
+				{% endif %}
+			</ul>
+		</div>
+
+		<div class="order-2">
+			<li class="navbar-text mx-2">
+				<span> Attempted: <span id="attemptedNo">1</span></span>
+			</li>
+			<li class="navbar-text mx-2">
+				<span id="timer"></span>
+			</li>
+			<button class="btn btn-finish mx-2" onclick="showResults()">Finish Test</button>
+
+			<!-- Video for the webcam -->
+			<div id="video-outer" class="text-center navbar-text">
+				<div id="video-inner" class="mx-auto">
+					<video width="80" height="60" id="video" autoplay></video>
+				</div>
+			</div>
+		</div>
+	</nav>
+
+
+	{% block content %}
+	Text in layout
+	{% endblock %}
+
+
+
+	{% if messages %}
+	{% for message in messages %}
+	{% if 'error' in message.tags %}
+	<script>
+		Swal.fire({
+			icon: 'error',
+			title: 'Error',
+			html: '{{ message }}',
+			position: 'top',
+			timerProgressBar: true,
+			showConfirmButton: false,
+			timer: 1500
+		});
+	</script>
+	{% elif 'warning' in message.tags %}
+	<script>
+		Swal.fire({
+			icon: 'warning',
+			html: '{{ message }}',
+			position: 'top',
+			timerProgressBar: true,
+			showConfirmButton: false,
+			timer: 3000
+		});
+	</script>
+	{% endif %}
+	{% endfor %}
+	{% endif %}
+
+
+	<script>
+	var increase_suspicious_url = '{% url "increase_suspicious" %}';
+	var quiz_id = "{{ quiz.quiz_id }}";
+
+		// The test will be autosubmitted when the suspicion count reach to its max value
+	function max_suspicion_reached() {
+		$.ajax({
+			type: "POST",
+			url: 'completed/',
+			data: {
+				quizTaker: {{quizTaker.pk}},
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success:function(success) {
+				window.location.pathname = `{% url 'quiz_result' quiz.quiz_id %}`;
+			},
+			error:function(error) {
+				Swal.close();
+				max_suspicion_reached();
+			}
+		});
+		Swal.fire({
+			icon: 'warning',
+			html: 'The test is being terminated due to too much suspicious activity.',
+			position: 'center',
+			showConfirmButton: false,
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			preDeny: function (email) {
+				return new Promise(function (resolve, reject) {
+					reject();
+				}).catch(err => {
+					max_suspicion_reached();
+					return false;
+				});
+			}
+		});
+	}
+
+
+
+
+
+//visibility change event from browsers
+	var vis = (function(){
+		var stateKey, eventKey, keys = {
+			hidden: "visibilitychange", 
+			webkitHidden: "webkitvisibilitychange", 
+			mozHidden: "mozvisibilitychange",
+			msHidden: "msvisibilitychange"
+		};
+		for (stateKey in keys) {
+			if (stateKey in document) {
+				eventKey = keys[stateKey];
+				break;
+			}
+		}
+		return function(c) {
+			if (c) document.addEventListener(eventKey, c);
+			return !document[stateKey];
+		}
+	})();
+
+	vis(function(){
+		if(!vis()) {
+			$.ajax({
+				type: "POST",
+				url: '{% url "increase_suspicious" %}',
+				data: {
+					quiz: "{{ quiz.quiz_id }}",
+					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+				},
+				success:function(success) {
+					if(success.max_reached) {
+						max_suspicion_reached();
+					}
+				}
+			});
+			Swal.fire({
+				icon: 'warning',
+				html: 'Do not switch tabs or else the test will be marked as suspicious.',
+				position: 'top',
+				showConfirmButton: true,
+			});
+		}
+	});
+
+
+
+
+	// asynchronous function to check for tab switching and opening a browser inspect
+	!function() {
+		function detectDevTool(allow) {
+			if(isNaN(+allow)) allow = 100;
+			var start = +new Date();
+			debugger;
+			var end = +new Date();
+			if(isNaN(start) || isNaN(end) || end - start > allow) {
+				$.ajax({
+					type: "POST",
+					url: '{% url "increase_suspicious" %}',
+					data: {
+						quiz: "{{ quiz.quiz_id }}",
+						csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+					},
+					success:function(success) {
+						if(success.max_reached) {
+							max_suspicion_reached();
+						}
+					}
+				});
+				Swal.fire({
+					icon: 'warning',
+					html: 'Do Not open the developer tools or else the test will be marked as suspicious.',
+					position: 'top',
+					showConfirmButton: true,
+				});
+			}
+		}
+		if(window.attachEvent) {
+			if (document.readyState === "complete" || document.readyState === "interactive") {
+				detectDevTool();
+				window.attachEvent('onresize', detectDevTool);
+				window.attachEvent('onmousemove', detectDevTool);
+				window.attachEvent('onfocus', detectDevTool);
+				window.attachEvent('onblur', detectDevTool);
+				} else {
+					setTimeout(argument.callee, 0);
+				}
+		} else {
+			window.addEventListener('load', detectDevTool);
+			window.addEventListener('resize', detectDevTool);
+			window.addEventListener('mousemove', detectDevTool);
+			window.addEventListener('focus', detectDevTool);
+			window.addEventListener('blur', detectDevTool);
+		}
+	}();
+
+
+	// trigger the full screen mode on browser
+	function triggerFullScreen() {
+		if(!document.fullscreenElement || document.fullscreenElement == null) {
+			if(!Swal.isVisible()) {
+				Swal.close();
+				Swal.fire({
+					icon: 'error',
+					title: 'warning',
+					text: 'The quiz need to be in full screen mode',
+					position: 'top',
+					allowOutsideClick: false,
+					allowEscapeKey: false,
+				}).then((result) => {
+					if (result.isConfirmed) {
+						document.documentElement.requestFullscreen();
+					} else {
+						triggerFullScreen();
+					}
+				});
+			}
+		}
+	}
+
+	// if the user exits from the full screen mode it will reenable the full screen
+	document.onfullscreenchange = function ( event ) {
+		triggerFullScreen();
+	}
+
+
+	// trigger the full screen just after the page is loaded and also check whether the screen is in full screen mode or not 2 times in a second
+	$(document).ready(function() {
+		setInterval(triggerFullScreen, 500);
+		triggerFullScreen();
+	});
+	</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,320 @@
+:root {
+    --nav: #2980b9;
+    --blue: #2980b9;
+    --purple: #6b1c89;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    width: 100vw;
+    position: relative;
+    background: rgb(210, 210, 210);
+    background:#fff;
+    overflow-x: hidden;
+    color:#222;
+}
+
+/*
+setting the minimum height of the pages
+ minimum height of page content = height of screen - height of header - height of footer
+*/
+#home,
+.quiz_started,
+#quiz_result,
+.container-form,
+#profile,
+.quiz-upcoming,
+#quiz_ended,
+#quiz_instruction
+{
+    min-height: calc(100vh - 70px - 70px);
+}
+
+
+/*
+Custom Classes
+*/
+.shadow {
+    box-shadow: 2px 5px 10px 10px rgba(0, 0, 0, 0.2);
+}
+
+
+/*
+Navigation Bar CSS
+*/
+
+.navbar-dark .navbar-nav .nav-link {
+    color: #fff;
+}
+
+.navbar a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.navbar-brand {
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.navbar-item {
+    font-variant: small-caps;
+    margin-left: 30px;
+}
+
+.navbar {
+    background-color: var(--nav);
+    font-size: 1em;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    color: white;
+    z-index: 1;
+    padding: 20px 100px 10px 100px;
+    position: sticky;
+    top:0;
+}
+
+@media only screen and (max-width: 768px) {
+    .navbar {
+        padding: 20px 40px;
+    }
+}
+
+
+/* 
+Home Page CSS
+*/
+
+#home {
+    background: url('../images/bg1.jpeg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#home .quiz_form{
+    color:#222;
+}
+
+#home .quiz_form .form-control:focus{
+    color:#222;
+}
+
+#home .quiz_form input{
+    margin-top: 50px;
+    margin-bottom: 30px;
+    width: 100%;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    background:#e8f0fe;
+}
+
+#home .quiz_form input::placeholder{
+    color:#222;
+}
+
+#home .quiz_form button{
+    background: var(--nav);
+    color:#fff;
+}
+
+
+.home_div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.home_div_content {
+    padding: 60px 50px;
+    background-color: rgba(0, 0, 0, 0.3);
+    -webkit-backdrop-filter: blur(5px);
+    -moz-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    border-radius: 20px;
+    text-align: center;
+    color: white;
+}
+
+@media only screen and (max-width: 998px) {
+    #home {
+        background-position: top;
+        background-size: 300%;
+    }
+
+    .home_div_content {
+        padding: 50px 30px;
+    }
+}
+
+/* 
+Quiz Result Page CSS
+File quiz_app/quiz_result.html
+*/
+
+#quiz_result 
+{
+    color: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+#quiz_result div:nth-child(1)
+{
+    width: 100%;
+}
+#quiz_result .content 
+{
+    padding: 20px 10px;
+    box-shadow: 2px 5px 10px 10px rgba(0, 0, 0, 0.2);
+}
+#quiz_result .content .row
+{
+    margin: 5px auto;
+    font-weight: bold;
+}
+
+#quiz_result .content .row .score 
+{
+    font-size: 30px;
+}
+
+#quiz_result .content .row .progress,
+#quiz_result .content .row .progress-bar 
+{
+    height: 25px;
+}
+
+#quiz_result .description 
+{
+    box-shadow: 2px 5px 10px 10px rgba(0, 0, 0, 0.2);
+}
+
+#quiz_result .description .table 
+{
+    color: #fff;
+    margin-bottom: 0;
+}
+
+#quiz_result .description thead tr 
+{
+    background: var(--nav);
+}
+
+#quiz_result .description tr th,
+#quiz_result .description tr td 
+{
+    vertical-align: middle;
+}
+
+#quiz_result .description tr td pre 
+{
+    display: inherit;
+    color: inherit;
+}
+
+
+
+/* 
+Student Profile Page Styling
+File - templates/registration/profile.html
+*/
+#profile
+{
+    background: #fff;
+    color:#222222
+}
+
+#profile main{
+    width:80%;
+    margin:0 auto;
+}
+
+#profile .sidenav {
+    height: 100%;
+    width: 160px;
+    position: fixed;
+    z-index: 1;
+    top: 70px;
+    left: 0;
+    background:#fff;
+    box-shadow: 0 0 10px 10px rgba(0, 0, 0, 0.2);
+    overflow-x: hidden;
+    padding-top: 20px;
+}
+  
+#profile .sidenav a {
+    padding: 6px 8px 6px 16px;
+    text-decoration: none;
+    font-size: 25px;
+    color: #818181;
+    display: block;
+}
+  
+#profile .sidenav a:hover {
+    color: #222222;
+}
+
+#profile main {
+    font-size: 28px;
+    padding: 0px 10px;
+}
+
+#profile main a.nav-link{
+    color: var(--nav);
+}
+
+#profile main a.nav-link.active{
+    color: #fff;
+}
+
+#profile main .nav-tabs .nav-item.show .nav-link, .nav-tabs .nav-link.active {
+    background-color: #2980B0;
+    border-color: #2980b9;
+    border-radius: 0;
+    color: #fff;
+}
+
+#profile .tab-content .list-group{
+    margin-top: 10px;
+}
+
+.result-success{
+    background: #C6EFCE;
+    color:#006100;
+}
+
+.result-danger{
+    background: #FFC7CE;
+    color:#9C0006;
+}
+
+.result-primary{
+    background: #b4daff;
+    color:#003171;
+}
+
+
+/*
+Footer CSS
+*/
+.footer {
+    height: 70px;
+    background: var(--nav);
+    width: 100%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index:2;
+}

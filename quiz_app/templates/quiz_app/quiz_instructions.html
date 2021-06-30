@@ -1,0 +1,246 @@
+{% extends "quiz_app/layout.html" %}
+{% load static %}
+
+{% block title %}
+{{ quiz.title | title }}
+{% endblock %}
+
+{% block content %}
+
+<!-- CSS location - site.css -->
+
+<div id="quiz_instruction">
+	<div class="row">
+		<div class="col-12 mb-4">
+			<h1 class="text-center">Instructions</h1>
+			<small><b>Please make sure that room is well lighted, otherwise your face will not be detected by the webcam</b></small><br>
+			<small><b>There will be a box around your face, when your face is detected by the webcam.</b></small>
+
+		</div>
+	</div>
+	<div class="row inner">
+		<div class="col-12 col-md-9 instructions">
+			<ol class="">
+				{% for instruction in quiz.instructions.splitlines %}
+				<li>{{ instruction }}</li>
+				{% endfor %}
+			</ol>
+		</div>
+		<div class="col-12 col-md-3 d-flex justify-content-center align-items-center">
+			<form method="POST">
+				{% csrf_token %}
+				<input id="start" type="submit" class="start_test btn" value="Start Test">
+			</form>
+		</div>
+	</div>
+
+</div>
+<script defer src="{% static 'quiz_app/face_detection/face-api.min.js' %}"></script>
+<script>
+	let quiz_id = `{{ quiz.quiz_id}}`;
+	let form = $("form");
+
+	form.on("submit", function(e) {
+		e.preventDefault();
+
+		extra = {};
+		{% for extra in quiz.extra.splitlines %}
+		extra["{{extra}}"] = ("")
+		{% endfor %}
+		const keys = Object.keys(extra);
+		const length = keys.length;
+
+		const steps = Array.from(new Array(length), (x, i) => i + 1);
+		const swalQueueStep = Swal.mixin({
+			confirmButtonText: 'Forward',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			cancelButtonText: 'Back',
+			progressSteps: steps,
+			input: 'text',
+			inputAttributes: {
+				required: true
+			},
+			reverseButtons: true,
+			validationMessage: 'This field is required'
+		})
+
+		const values = []
+		let currentStep;
+
+
+		if (navigator.mediaDevices === undefined) {
+			navigator.mediaDevices = {};
+		}
+
+		if (navigator.mediaDevices.getUserMedia === undefined) {
+			navigator.mediaDevices.getUserMedia = function (constraints) {
+
+				var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+				if (!getUserMedia) {
+					return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+				}
+
+				return new Promise(function (resolve, reject) {
+					getUserMedia.call(navigator, constraints, resolve, reject);
+				});
+			}
+		}
+
+		async function requestExtra() {
+			for (currentStep = 0; currentStep < length;) {
+				const result = await swalQueueStep.fire({
+					title: `Enter ${keys[currentStep]}`,
+					inputValue: extra[keys[currentStep]],
+					showCancelButton: currentStep > 0,
+					currentProgressStep: currentStep
+				})
+
+				if (result.value) {
+					extra[keys[currentStep]] = result.value
+					currentStep++
+				} else if (result.dismiss === Swal.DismissReason.cancel) {
+					currentStep--
+				} else {
+					break
+				}
+			}
+
+			if (currentStep === steps.length) {
+				Swal.fire({
+					icon: 'info',
+					title: 'Submitting',
+					html: 'Please Wait!!!',
+					position: 'center',
+					showConfirmButton: false,
+					allowOutsideClick: false,
+					allowEscapeKey: false,
+				});
+				$.ajax({
+					type: "POST",
+					url: 'save_extra/',
+					data: {
+						quiz: "{{quiz.quiz_id}}",
+						extra: JSON.stringify(extra),
+						csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+					},
+					success:function(success) {
+						window.location.pathname = `{% url 'quiz' quiz.quiz_id %}`;
+					},
+					error:function(error) {
+						Swal.close();
+						if(error.status == 403 && error.responseJSON.error == "logged out") {
+							Swal.fire({
+								toast: true,
+								position: 'top-end',
+								icon: 'error',
+								html: `You Have been logged out.<br>Please Login again.`,
+								animation: true,
+								timer: 3000,
+								timerProgressBar: true,
+								showConfirmButton: false,
+							});
+						} else {
+							Swal.fire({
+								toast: true,
+								position: 'top-end',
+								icon: 'error',
+								html: `An Error Occured<br>Please Try Again`,
+								animation: true,
+								timer: 2000,
+								timerProgressBar: true,
+								showConfirmButton: false,
+							});
+						}
+					}
+				});
+			}
+		}
+
+		{% if quiz.isProctored %}
+		// Load the model for the face detection api for the webcam validation
+		Promise.all([
+			faceapi.nets.tinyFaceDetector.loadFromUri('/static/quiz_app/face_detection/models')
+		]);
+
+
+		Swal.fire({
+			title: 'Webcam Validation',
+			html: `<div id="video-outer" style="position:relative"><video id="video" poster="{% static 'quiz_app/images/person_placeholder.png' %}" width="260" height="195" autoplay></video></div>`,
+			showCancelButton: false,
+			confirmButtonText: 'Check Webcam',
+			showLoaderOnConfirm: true,
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			preConfirm: () => {
+				if(!video.srcObject) {
+					return navigator.mediaDevices.getUserMedia({ video: true })
+					.then((stream) => {
+						video.srcObject = stream;
+
+						video.onloadedmetadata = (e) => {
+
+							const canvas = faceapi.createCanvasFromMedia(video);
+							document.getElementById("video-outer").append(canvas);
+							const displaySize = { width: video.width, height: video.height};
+							faceapi.matchDimensions(canvas, displaySize);
+
+							canvas.style.position = "absolute";
+							canvas.style.left = "0";
+							canvas.style.right = "0";
+							canvas.style.margin = "0 auto";
+
+							setInterval(async () => {
+								const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+								const resizedDetections = faceapi.resizeResults(detections, displaySize);
+								canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+								faceapi.draw.drawDetections(canvas, resizedDetections);
+
+								canvas.style.position = "absolute";
+								canvas.style.left = "0";
+								canvas.style.right = "0";
+								canvas.style.margin = "0 auto";
+
+								console.log(detections);
+								if(detections.length > 1){
+									console.error("Multiple people detected");
+								}else if(detections.length == 1){
+									Swal.getConfirmButton().textContent = 'Continue'
+									console.log("User Found");
+								}else{
+									console.error("No User Found");
+								}
+							}, 1000);
+
+						Swal.getConfirmButton().textContent = 'Continue'
+							video.play();
+						}
+						return false;
+					})
+					.catch((error) => {
+						Swal.showValidationMessage(
+							`Request failed: ${error}`
+						)
+					})
+				}
+				else {
+					video.srcObject.getTracks().forEach(function(track) {
+						track.stop();
+					});
+
+				}
+			},
+		}).then((result) => {
+			if (result.isConfirmed) {
+				requestExtra();
+			}
+		})
+		{% else %}
+			requestExtra();
+		{% endif %}
+	})
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "registration/base_form.html" %}
+
+{% block title %}
+Login
+{% endblock %}
+
+{% block formBlock %}
+
+<!-- 
+    Login Page
+    CSS - static/form.css
+ -->
+
+<div class="formBlock my-md-4 shadow">
+    <h2 class="text-center">Log In</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            <label for={{ field.auto_id }}>
+                {% if field.label == "Username" %} Email {% else %}{{ field.label }}{% endif %}
+            </label>
+            <input class="form-control" id="{{ field.id_for_label }}" maxlength="30" name="{{ field.html_name }}"
+                type={% if field.html_name == "username" %}email{% else %}password{% endif %} autocapitalize="none"
+                required="" />
+        </div>
+        {% endfor %}
+        <!-- <div class="form-check">
+            <label class="form-check-label">
+                <input type="checkbox" class="form-check-input" value="">Remember Me
+            </label>
+        </div> -->
+        <div class="form-group">
+            <button type="submit" class="btn btn-block mt-4" id="login">Log In</button>
+        </div>
+        <div class="form-group">
+            <label class="control-label">Don't have an account? <a href="{% url 'signup' %}" class="form-link">Sign
+                    Up</a></label>
+        </div>
+    </form>
+</div>
+
+
+<!-- Show the errors messages -->
+
+{% for field, errors in form.errors.items %}
+{% for error in errors %}
+{% if "This account is inactive." in error %}
+<script>
+Swal.fire({
+			icon: 'info',
+			title: 'Email Not Verified',
+			html: 'Do You Want to send the verification email again?',
+			position: 'center',
+			showCancelButton: true,
+			confirmButtonColor: '#3085d6',
+			cancelButtonColor: '#d33',
+		}).then((result) => {
+			if (result.isConfirmed) {
+				$.ajax({
+					type: "POST",
+					url: '{% url "send_verification_email" %}',
+					data: {
+						email: $("#id_username").val(),
+						password: $("#id_password").val(),
+						csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+					},
+					success:function(success) {
+						Swal.fire({
+							toast: true,
+							position: 'top-end',
+							icon: 'success',
+							html: `Email Sent`,
+							animation: true,
+							timer: 1000,
+							timerProgressBar: true,
+							showConfirmButton: false,
+						});
+						window.location.pathname = `{% url 'home' %}`;
+					},
+				});
+			}
+		});
+</script>
+{% else %}
+<script>
+    Swal.fire({
+        icon: 'warning',
+        html: '{{ error }}',
+        position: 'top',
+        timerProgressBar: true,
+        showConfirmButton: false,
+        timer: 3000
+    });
+</script>
+{% endif %}
+{%endfor %}
+{%endfor %}
+{% endblock %}

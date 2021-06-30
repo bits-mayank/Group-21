@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
+
+	<title>Verify Email address</title>
+
+	<style>
+		.format-font {
+			font-family: 'Montserrat', sans-serif;
+		}
+
+		.my-container {
+			margin: 10px;
+			padding: 10px;
+			padding-top: 0px;
+			justify-content: center;
+			border-radius: 5px;
+			border: 1px solid rgb(204, 203, 203);
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="my-container">
+
+		<div class="format-font" style="margin-top: 20px; line-height: 1.5;">
+			Hi {{ name }}, <br>
+			Your test: {{ title }} has been submitted successfully. <br>
+			Test Start Time: {{ started }} <br>
+			Submission Time: {{ completed }}
+			Thanks.
+		</div>
+
+		<p class="format-font" style="margin-top: 50px; line-height: 1.5;">
+			<small style="color: #808080">Note: This is an auto-generated email. Please do not reply</small>
+		</p>
+
+	</div>
+
+</body>
+
+</html>
