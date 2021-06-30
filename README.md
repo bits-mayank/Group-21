@@ -1,1 +1,3 @@
-# A web based application for conducting the online quizzes.
+# Online Evaluator for MCQ
+
+
